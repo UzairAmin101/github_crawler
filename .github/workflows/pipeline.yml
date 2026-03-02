@@ -1,0 +1,68 @@
+name: GitHub Crawler
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch: 
+
+jobs:
+  crawl-and-store:
+    runs-on: ubuntu-latest
+
+    # 1. Postgres Service Container
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_DB: github_crawler
+          POSTGRES_USER: admin
+          POSTGRES_PASSWORD: admin
+        ports:
+          - 5432:5432
+        
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Set up Environment 
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 3. Setup-Postgres Step
+      - name: Setup postgres 
+        run: python setup_db.py
+        env:
+          POSTGRES_CONN_STRING: postgresql://admin:admin@localhost:5432/github_crawler
+
+      # 4. Crawl-Stars Step
+      - name: Crawl-stars
+        run: python crawl_stars.py
+        env:
+          GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+          GRAPHQL_URL: https://api.github.com/graphql
+          REPO_COUNT_UPPER: 1000
+          POSTGRES_CONN_STRING: postgresql://admin:admin@localhost:5432/github_crawler
+
+      # 5. Export and Upload Artifacts
+      - name: Dump database to JSON
+        run: python export_data.py
+        env:
+          POSTGRES_CONN_STRING: postgresql://admin:admin@localhost:5432/github_crawler
+          OUTPUT_FILE_NAME: data.json
+
+
+      - name: Upload results
+        uses: actions/upload-artifact@v7
+        with:
+          name: github-stars-report
+          path: results.json
