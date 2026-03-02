@@ -50,12 +50,12 @@ jobs:
         env:
           GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
           GRAPHQL_URL: https://api.github.com/graphql
-          REPO_COUNT_UPPER: 1000
+          REPO_COUNT_UPPER: 100000
           POSTGRES_CONN_STRING: postgresql://admin:admin@localhost:5432/github_crawler
 
       # 5. Export and Upload Artifacts
       - name: Dump database to JSON
-        run: python export_data.py
+        run: python export.py
         env:
           POSTGRES_CONN_STRING: postgresql://admin:admin@localhost:5432/github_crawler
           OUTPUT_FILE_NAME: data.json
