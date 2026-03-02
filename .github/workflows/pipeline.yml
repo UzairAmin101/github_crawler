@@ -65,4 +65,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: github-stars-report
-          path: results.json
+          path: data.json
